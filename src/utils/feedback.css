@@ -1,0 +1,44 @@
+.feedback {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .feedback.success {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  
+  .feedback.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .feedback.warning {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .feedback.info {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+ 
