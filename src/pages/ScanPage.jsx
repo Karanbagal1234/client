@@ -26,7 +26,7 @@ const ScanPage = () => {
       if (data.type.toLowerCase() === "store") {
         // ✅ Handling store QR codes
         const res = await StoreService.startStoreSession({
-          storeId: "67a8922ebe086261dfe7f9a9",
+          storeId: data.ID,
         });
         if (res?.data?.session?.cartId) {
           localStorage.setItem("store", data.ID);
