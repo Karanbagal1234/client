@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { notification } from "../utils/feedback";
 import useRedirect from "../services/AuthChecker";
+import Cookies from "js-cookie";
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -26,6 +27,13 @@ const LoginPage = () => {
     setError(null);
     try {
       const response = await login(formData, isRetailer);
+     const {data} = response;
+      if(data.user){
+        localStorage.setItem("userId", data.user._id);
+      }else if(data.retailer){
+        localStorage.setItem("retailerId", data.retailer._id);  
+      }
+
       if (response?.status === 200) {
         notification.success("Login successful! Redirecting...");
         redirectTo(isRetailer ? "/Retailer" : "/Home");
