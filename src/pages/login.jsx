@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { notification } from "../utils/feedback";
 import useRedirect from "../services/AuthChecker";
-import Cookies from "js-cookie";
 
 const LoginPage = () => {
   const { login } = useAuth();
