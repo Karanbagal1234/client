@@ -15,12 +15,12 @@ export const cartService = {
       data: { productId },
     });
   },
-  addToCart: async ({ productId, quantity }) => {
-    return api.post(`/product/addToCart`, { productId, quantity });
+  addToCart: async ({ cartId, productId, quantity }) => {
+    return api.post(`/product/addToCart`, {cartId, productId, quantity });
   },
 getProductDetails: async (data) => {
   
-  console.log("data : " + JSON.stringify(data))
+  console.log("get products id : " + JSON.stringify(data))
     return api.post(`/product/getProducts`,data);
   },
   getPurchaseHistory: async () => {

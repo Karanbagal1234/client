@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { cartService } from "../services/cart.js"; // Ensure correct import
-import { useCart } from "../context/cartContext.jsx";
+import { useCart } from "../context/cart.jsx";
 
 const DigitalReceipt = () => {
   const [receipt, setReceipt] = useState(null);
@@ -70,7 +70,7 @@ const DigitalReceipt = () => {
                   <p className="text-gray-600">Qty: {item.quantity || 1}</p>
                 </div>
                 <p className="text-gray-800">
-                  ${(item.Price * (item.quantity || 1)).toFixed(2)}
+                  ₹{(item.Price * (item.quantity || 1)).toFixed(2)}
                 </p>
               </div>
             ))}
@@ -80,7 +80,7 @@ const DigitalReceipt = () => {
         {/* Total Amount */}
         <div className="flex justify-between items-center mt-6 pt-4 border-t">
           <p className="text-lg font-semibold text-gray-800">Total Amount</p>
-          <p className="text-xl font-bold text-gray-800">${(total || 0).toFixed(2)}</p>
+          <p className="text-xl font-bold text-gray-800">₹{(total || 0).toFixed(2)}</p>
         </div>
 
         {/* Thank You Message */}

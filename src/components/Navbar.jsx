@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContex";
 
-const Navbar = () => {
+const Navbar = memo(() => { 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, retailer, loading, logout } = useAuth();
   const theme = useTheme(); // Access the theme colors
@@ -26,7 +26,7 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <a href="/" className="text-2xl font-bold" style={{ color: theme.richBlack }}>
-              MyStore
+              ScanPay
             </a>
           </div>
 
@@ -232,6 +232,6 @@ const Navbar = () => {
       )}
     </nav>
   );
-};
+});
 
 export default Navbar;

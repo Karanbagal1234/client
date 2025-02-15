@@ -4,23 +4,26 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import { CartProvider } from "./context/cartContext.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { lazy, Suspense } from "react";
+
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
-import LoginPage from "./pages/login.jsx";
-import RegisterPage from "./pages/Register.jsx";
-import CustomerDashboard from "./pages/CustomerDashboard.jsx";
-import RetailerDashboard from "./pages/RetailerDashboard.jsx";
-import ScanPage from "./pages/ScanPage.jsx";
-import StorePage from "./pages/StorePage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import HomePage from "./pages/Home-page.jsx";
 import { Bounce, ToastContainer } from "react-toastify";
-import DigitalReceipt from "./pages/Recipt.jsx";
+import { CartProvider } from "./context/cart.jsx";
+
+// Lazy-loaded pages
+const LoginPage = lazy(() => import("./pages/login.jsx"));
+const RegisterPage = lazy(() => import("./pages/Register.jsx"));
+const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard.jsx"));
+const RetailerDashboard = lazy(() => import("./pages/RetailerDashboard.jsx"));
+const ScanPage = lazy(() => import("./pages/ScanPage.jsx"));
+const StorePage = lazy(() => import("./pages/StorePage.jsx"));
+const HomePage = lazy(() => import("./pages/Home-page.jsx"));
+const DigitalReceipt = lazy(() => import("./pages/Recipt.jsx"));
 
 function App() {
-
   return (
     <Router>
       <AuthProvider>
@@ -30,27 +33,30 @@ function App() {
             className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-16"
             style={{ minHeight: "calc(100vh - 64px - 80px)" }}
           >
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/" element={<HomePage />} />
+            <Suspense
+              fallback={
+                <div className="text-center text-gray-500">Loading...</div>
+              }
+            >
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/" element={<HomePage />} />
 
-              <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
-                <Route path="/Home" element={<CustomerDashboard />} />
-                <Route path="/scan" element={<ScanPage />} />
-                <Route
-                  path="/Shopping-start/:storeId"
-                  element={<StorePage />}
-                />
-                <Route path="/recipt" element={<DigitalReceipt/>}/>
-              </Route>
+                <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+                  <Route path="/Home" element={<CustomerDashboard />} />
+                  <Route path="/scan" element={<ScanPage />} />
+                  <Route path="/Shopping-start" element={<StorePage />} />
+                  <Route path="/recipt" element={<DigitalReceipt />} />
+                </Route>
 
-              <Route element={<ProtectedRoute allowedRoles={["retailer"]} />}>
-              <Route path="/Retailer" element={<RetailerDashboard />} />
-              </Route>
+                <Route element={<ProtectedRoute allowedRoles={["retailer"]} />}>
+                  <Route path="/Retailer" element={<RetailerDashboard />} />
+                </Route>
 
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </Suspense>
           </main>
           <Footer />
         </CartProvider>

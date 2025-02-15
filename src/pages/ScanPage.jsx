@@ -1,107 +1,144 @@
-import {
-  Navigate,
-  useLocation,
-  useNavigate,
-  useNavigationType,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import QRScanner from "../components/QrScanner";
 import { cartService } from "../services/cart";
 import { notification } from "../utils/feedback";
-import { useAuth } from "../context/AuthContext";
-import { StoreService } from "../services/store";
-import { useCart } from "../context/cartContext";
 import { useState } from "react";
-import Modal from "../components/Model";
 import useRedirect from "../services/AuthChecker";
+import { StoreService } from "../services/store";
+import Modal from "../components/Model";
+import { useAuth } from "../context/AuthContext"; // Import useAuth to access spending limit functionality
+import { useCart } from "../context/cart";
 const ScanPage = () => {
-  const {redirectTo} = useRedirect();
-  const { cartId,setcartId }= useCart();
+  const { setCartId, setStore, cart, cartId, setCart } = useCart();
+  const { redirectTo } = useRedirect();
   const navigate = useNavigate();
-  const { startStoreSession } = StoreService;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-let res;
+  const { setLimit } = useAuth(); // Access setLimit from AuthContext
+
   const handleScanSuccess = async (data) => {
-    console.log("Scanned Data:", data);
+    try {
+      if (!data?.type) {
+        notification.error("Invalid QR code.");
+        return;
+      }
 
-    switch (data?.type?.toLowerCase()) {
-      case "product":
-        res = await cartService.ScanProduct({ productId: data.ID });
-        setSelectedProduct(res.data.product);
-        setIsModalOpen(true);
-        notification.success(`Product added to cart successfully!`);
-
-
-        break;
-        case "store":
+      if (data.type.toLowerCase() === "store") {
+        // ✅ Handling store QR codes
+        const res = await StoreService.startStoreSession({
+          storeId: "67a8922ebe086261dfe7f9a9",
+        });
+        if (res?.data?.session?.cartId) {
           localStorage.setItem("store", data.ID);
-          res = await startStoreSession({ storeId: data.ID });
-          
-          setcartId(res.data.session.cartId);  // Update state
-          localStorage.setItem("cartId", cartId);  // Store updated value
-        
-          navigate(`/Shopping-start/${data.ID}`);
-          console.log("cartId :" + res.data.session.cartId);
-          break;
-        
-      default:
+          localStorage.setItem("cart", res.data.session.cartId);
+
+          setCartId(res.data.session.cartId);
+          setStore(data.ID);
+
+          // Prompt user to set a spending limit
+          const limitInput = prompt(
+            "Set your spending limit for this store (or leave blank for default $1000):"
+          );
+          const limit = limitInput ? parseFloat(limitInput) : 1000; // Default to $1000 if no input
+          if (!isNaN(limit)) {
+            setLimit(limit); // Set the spending limit in AuthContext
+            notification.success(`Spending limit set to $${limit}.`);
+          } else {
+            notification.error("Invalid input. Defaulting to $1000.");
+            setLimit(1000); // Set default limit
+          }
+
+          redirectTo("/Shopping-start");
+        } else {
+          notification.error("Failed to start store session.");
+        }
+      } else if (data.type.toLowerCase() === "product") {
+        // ✅ Handling product QR codes
+        const res = await cartService.ScanProduct({
+          cartId,
+          productId: data.ID,
+        });
+        if (res?.data?.product) {
+          setSelectedProduct({ ...res.data.product, quantity: 1 });
+          setIsModalOpen(true);
+          notification.success("Product scanned successfully!");
+        } else {
+          notification.error("Product not found.");
+        }
+      } else {
         notification.error("Unsupported QR code format.");
+      }
+    } catch (error) {
+      console.error("QR Scan Error:", error);
+      notification.error("Something went wrong while scanning.");
     }
   };
-const handleAddToCart = async (quantity) => {
-  const serData = {productId : selectedProduct._id, quantity};
-  await  cartService.addToCart(serData);
-  setIsModalOpen(false);
-  notification.success(`Product added to cart successfully!`);
-  redirectTo(`/Shopping-start/${localStorage.getItem("store")}`);
-  
-};
-  const handleScanError = (error) => {
-    console.error("QR Scan Error:", error);
+
+  const handleAddToCart = async (quantity) => {
+    if (!selectedProduct?._id) return;
+
+    try {
+      const a = await cartService.addToCart({
+        productId: selectedProduct._id,
+        quantity,
+      });
+
+      // ✅ Update cart state immediately
+      setCart((prevCart) => {
+        const existingProduct = prevCart.find(
+          (p) => p._id === selectedProduct._id
+        );
+        if (existingProduct) {
+          return prevCart.map((p) =>
+            p._id === selectedProduct._id
+              ? { ...p, Quantity: p.Quantity + quantity }
+              : p
+          );
+        } else {
+          return [...prevCart, { ...selectedProduct, Quantity: quantity }];
+        }
+      });
+
+      setIsModalOpen(false);
+      notification.success("Product added to cart successfully!");
+      redirectTo("/Shopping-start");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      notification.error("Failed to add product to cart.");
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900 p-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Scan QR Code</h1>
-        <p className="text-gray-600">
-          Position a store or product QR code within the frame to scan.
-        </p>
-      </div>
-
-      {/* QR Scanner */}
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-        <QRScanner
-          onScanSuccess={handleScanSuccess}
-          onScanFailure={handleScanError}
-          qrbox={{ width: 250, height: 250 }}
-          className="w-full h-64 rounded-lg overflow-hidden"
-          scanLabel="Align QR code in the frame"
-        />
-      </div>
-
-      {/* Help Text */}
-      <p className="mt-6 text-sm text-gray-500 text-center">
-        Having trouble scanning? Ensure the QR code is well-lit and centered.
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <h1 className="text-3xl font-bold">Scan QR Code</h1>
+      <p>
+        Position a store or product QR code within the frame to scan.
+        67aee7250445301d3f4aecb2
       </p>
+
+      <QRScanner onScanSuccess={handleScanSuccess} />
+
+      {/* Test Buttons */}
       <button
-        onClick={() =>
-          handleScanSuccess({ type: "store", ID: "67a4f77219479b12efd16e10" })
-        }
-        className="mt-4 w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        onClick={() => {
+          const data = prompt("Enter the Store ID");
+          handleScanSuccess({ type: "store", ID: data });
+        }}
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
       >
-        store scan
+        Simulate Store Scan
       </button>
       <button
         onClick={() => {
-          const data = prompt("Enter the product ID");
+          const data = prompt("Enter the Product ID");
           handleScanSuccess({ type: "product", ID: data });
         }}
-        className="mt-4 w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg"
       >
-        product scan
+        Simulate Product Scan
       </button>
+
+      {/* Confirmation Modal for Adding Product */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -109,21 +146,33 @@ const handleAddToCart = async (quantity) => {
       >
         {selectedProduct && (
           <div className="flex flex-col space-y-4">
-            <p className="text-lg font-semibold">Name: {selectedProduct.Name}</p>
+            <p className="text-lg font-semibold">
+              Name: {selectedProduct.Name}
+            </p>
             <p className="text-gray-600">Price: ${selectedProduct.Price}</p>
 
             {/* Quantity Selector */}
             <div className="flex items-center space-x-4">
               <button
                 className="bg-gray-600 text-white px-3 py-1 rounded-lg hover:bg-gray-700"
-                onClick={() => setSelectedProduct((prev) => ({ ...prev, quantity: Math.max(1, (prev.quantity || 1) - 1) }))}
+                onClick={() =>
+                  setSelectedProduct((prev) => ({
+                    ...prev,
+                    quantity: Math.max(1, prev.quantity - 1),
+                  }))
+                }
               >
                 -
               </button>
-              <span className="text-lg">{selectedProduct.quantity || 1}</span>
+              <span className="text-lg">{selectedProduct.quantity}</span>
               <button
                 className="bg-gray-600 text-white px-3 py-1 rounded-lg hover:bg-gray-700"
-                onClick={() => setSelectedProduct((prev) => ({ ...prev, quantity: (prev.quantity || 1) + 1 }))}
+                onClick={() =>
+                  setSelectedProduct((prev) => ({
+                    ...prev,
+                    quantity: prev.quantity + 1,
+                  }))
+                }
               >
                 +
               </button>
@@ -131,7 +180,7 @@ const handleAddToCart = async (quantity) => {
 
             {/* Add to Cart Button */}
             <button
-              onClick={() => handleAddToCart(selectedProduct.quantity || 1)}
+              onClick={() => handleAddToCart(selectedProduct.quantity)}
               className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white"
             >
               Add to Cart

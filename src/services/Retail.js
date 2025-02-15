@@ -10,4 +10,7 @@ export const retailService = {
   getProducts: async () => {
     return api.get("/product/getProductDetails");
   },
+  removeProduct: async (data) => {
+    return api.post("/product/remove-product", data);
+  }
 };

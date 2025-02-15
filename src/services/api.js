@@ -5,7 +5,7 @@ const IP = import.meta.env.VITE_IP;
 console.log("IP from .env:", IP); // Debugging
 
 const api = axios.create({
-  baseURL: `http://${IP}:3004/api/v1`,
+  baseURL: `http://${IP}/api/v1`,
   withCredentials: true,
 });
 
